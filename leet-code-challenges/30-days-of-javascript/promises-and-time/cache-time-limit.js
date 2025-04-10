@@ -4,18 +4,31 @@ class TimeLimitedCache {
   }
 
   set(key, value, duration) {
-    this.cache.set(key, value);
+    let returnValue = false;
 
-    // fix this.
-    setTimeout(() => {
-      this.cache.filter((item) => {
-        item !== key
-      })
+    if (this.cache.has(key)) {
+      const timeout = this.cache.get(key).timeout;
+      clearTimeout(timeout);
+      returnValue = true;
+    }
+
+    const timeout = setTimeout(() => {
+      this.cache.delete(key);
     }, duration);
+
+    this.cache.set(key, {
+      value,
+      timeout,
+    });
+
+    return returnValue;
   }
 
   get(key) {
-    return this.cache.get(key) || -1;
+    if (this.cache.has(key)) {
+      return this.cache.get(key).value;
+    }
+    return -1;
   }
 
   count() {
@@ -25,7 +38,11 @@ class TimeLimitedCache {
 
 const limitedCache = new TimeLimitedCache();
 
-limitedCache.set(1, 42, 100);
-limitedCache.get(1);
-limitedCache.count();
-limitedCache.get(1);
+function sleep(millis) {
+  return new Promise(resolve => setTimeout(resolve, millis));
+}
+
+console.log(limitedCache.set(1, 42, 100));
+console.log(limitedCache.get(1));
+console.log(limitedCache.count());
+sleep(500).then(() => limitedCache.get(1)).then(console.log);
